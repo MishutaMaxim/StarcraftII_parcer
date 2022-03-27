@@ -17,6 +17,7 @@ APIkey = AeM6fd9sGXyZBOu8vwkE
 APIurl = http://aligulac.com/api/v1/
 '''
 
+
 import requests
 import json
 import csv
@@ -41,6 +42,7 @@ race_name = {'P': 'Protoss',
              'S': 'race switcher'}
 locker = RLock()
 
+
 def results_from_api():
     def thread_request(offset):
         params = params_for_api.copy()
@@ -60,7 +62,6 @@ def results_from_api():
     th_req.join()
     print("Ответ пришел")
     return extract_results
-
 
 
 def write_to_file_stats(request_results: list, path_file):
