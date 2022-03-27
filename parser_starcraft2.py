@@ -25,7 +25,7 @@ import csv
 params_for_api = {"apikey": "AeM6fd9sGXyZBOu8vwkE",
               "current_rating__isnull": "false",
               "order_by": "-current_rating__rating",
-              "limit": "100"}
+              "limit": "500"}
 api_url = 'http://aligulac.com/api/v1/player/'
 flags_url = 'http://img.aligulac.com/flags/'
 path_file_stat = 'stats/stats.csv'
@@ -79,8 +79,9 @@ def write_to_file_flags(request_results: list, file_path):
     print("Я закончил запись флагов")
 
 
-print("Привет, я парсер, давай начнем работу.")
-api_request_results = results_from_api(params_for_api, api_url)
-write_to_file_stats(api_request_results, path_file_stat)
-write_to_file_flags(api_request_results, path_file_flag)
-print("Я закончил работу, это окно можно закрыть")
+if __name__ == '__main__':
+    print("Привет, я парсер, давай начнем работу.")
+    api_request_results = results_from_api(params_for_api, api_url)
+    write_to_file_stats(api_request_results, path_file_stat)
+    write_to_file_flags(api_request_results, path_file_flag)
+    print("Я закончил работу, это окно можно закрыть")
