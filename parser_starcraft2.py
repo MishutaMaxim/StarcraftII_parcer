@@ -80,6 +80,7 @@ def write_to_file_flags(request_results: list, file_path):
         file_name = row["tag"]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
+    save.join()
     print("Я закончил запись флагов")
 
 
