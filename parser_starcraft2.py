@@ -58,8 +58,6 @@ def results_from_api():
         th_req = Thread(target=thread_request, args=(limit,))
         th_req.start()
     th_req.join()
-    # request_results = requests.get(api_url, params=params)
-    # extract_results = json.loads(request_results.text)['objects']
     print("Ответ пришел")
     return extract_results
 
