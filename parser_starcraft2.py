@@ -20,6 +20,7 @@ APIurl = http://aligulac.com/api/v1/
 import requests
 import json
 import csv
+from threading import Thread
 
 # параметры API и токен, Путь для файла статистики и флагов
 params_for_api = {"apikey": "AeM6fd9sGXyZBOu8vwkE",
@@ -66,16 +67,19 @@ def write_to_file_stats(request_results: list, path_file):
 
 
 def write_to_file_flags(request_results: list, file_path):
+    def save_flag(country: str, name: str):
+        imgfile = open(f"{path_file_flag}{name}.png", "wb")  # открываем файл для записи, в режиме wb
+        flag_file = requests.get(f"{flags_url}{country}.png")  # делаем запрос
+        imgfile.write(flag_file.content)  # записываем содержимое в файл
+        imgfile.close()
+
     # Переберем все элементы в результатах, по ключам достанем ник и страну
     print("Я начинаю запись флагов")
     for row in request_results:
         country = row["country"].lower()
         file_name = row["tag"]
-        full_file_path = f"{file_path}{file_name}.png" #
-        imgfile = open(full_file_path, "wb")  # открываем файл для записи, в режиме wb
-        flag_file = requests.get(f"{flags_url}{country}.png")  # делаем запрос
-        imgfile.write(flag_file.content)  # записываем содержимое в файл
-        imgfile.close()
+        save = Thread(target=save_flag, args=(country, file_name,))
+        save.start()
     print("Я закончил запись флагов")
 
 
