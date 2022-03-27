@@ -42,8 +42,8 @@ def results_from_api(params: dict, url: str):
     # инициируем запрос с заголовком
     print("Я пошел на ресурс с API запросом, придется подождать")
     request_results = requests.get(api_url, params=params)
-    print("Ответ пришел")
     extract_results = json.loads(request_results.text)['objects']
+    print("Ответ пришел")
     return extract_results
 
 
