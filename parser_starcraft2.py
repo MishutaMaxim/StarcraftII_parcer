@@ -20,13 +20,16 @@ APIurl = http://aligulac.com/api/v1/
 import requests
 import json
 import csv
-from threading import Thread
+from time import sleep
+from threading import Thread, RLock
 
 # параметры API и токен, Путь для файла статистики и флагов
+request_limit = 10
+data_limit = 500
 params_for_api = {"apikey": "AeM6fd9sGXyZBOu8vwkE",
               "current_rating__isnull": "false",
               "order_by": "-current_rating__rating",
-              "limit": "500"}
+              "limit": (request_limit) }
 api_url = 'http://aligulac.com/api/v1/player/'
 flags_url = 'http://img.aligulac.com/flags/'
 path_file_stat = 'stats/stats.csv'
@@ -36,15 +39,30 @@ race_name = {'P': 'Protoss',
              'Z': 'Zerg',
              'R': 'random',
              'S': 'race switcher'}
+locker = RLock()
 
-
-def results_from_api(params: dict, url: str):
+def results_from_api():
+    def thread_request(offset):
+        params = params_for_api.copy()
+        params.update({"offset": offset})
+        print(f"Limit: {params['limit']}, offset: {params['offset']}")
+        request_results = requests.get(api_url, params=params)
+        results = json.loads(request_results.text)['objects']
+        locker.acquire()
+        extract_results.extend(results)
+        locker.release()
     # инициируем запрос с заголовком
+    extract_results = []
     print("Я пошел на ресурс с API запросом, придется подождать")
-    request_results = requests.get(api_url, params=params)
-    extract_results = json.loads(request_results.text)['objects']
+    for limit in range(0, data_limit, request_limit):
+        th_req = Thread(target=thread_request, args=(limit,))
+        th_req.start()
+    th_req.join()
+    # request_results = requests.get(api_url, params=params)
+    # extract_results = json.loads(request_results.text)['objects']
     print("Ответ пришел")
     return extract_results
+
 
 
 def write_to_file_stats(request_results: list, path_file):
@@ -86,7 +104,10 @@ def write_to_file_flags(request_results: list, file_path):
 
 if __name__ == '__main__':
     print("Привет, я парсер, давай начнем работу.")
-    api_request_results = results_from_api(params_for_api, api_url)
-    write_to_file_stats(api_request_results, path_file_stat)
-    write_to_file_flags(api_request_results, path_file_flag)
-    print("Я закончил работу, это окно можно закрыть")
+    api_request_results = results_from_api()
+    for _ in range(50):
+        print(len(api_request_results))
+        sleep(0.1)
+    # write_to_file_stats(api_request_results, path_file_stat)
+    # write_to_file_flags(api_request_results, path_file_flag)
+    # print("Я закончил работу, это окно можно закрыть")
