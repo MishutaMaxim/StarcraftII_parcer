@@ -45,21 +45,30 @@ def results_from_api():
     """
     Модуль отправляет запросы на API, получает ответ и возвращает список элементов
     """
-    def thread_request(offset):
+    def api_request(offset):
+        """
+        Функция выполняет запрос к api, выбирает полученные элементы и добавляет их в общий список
+        :param offset: стартовая позиция для выборки
+        """
+        # формируем параметры для запроса
         params = params_for_api.copy()
         params.update({"offset": offset})
+        # Делаем сам запрос, результаты добавляем в общий список
         request_results = requests.get(api_url, params=params)
         results = json.loads(request_results.text)['objects']
         extract_results.extend(results)
 
+    # Объявляем общий список с результатами и список потоков
     extract_results = []
     response_threads = []
     print("Отправили API запрос на сервер, придется подождать ...")
     start_time = time()
+    # Запускаем потоки
     for limit in range(0, data_limit, request_limit):
-        th_req = Thread(target=thread_request, args=(limit,))
+        th_req = Thread(target=api_request, args=(limit,))
         response_threads.append(th_req)
         th_req.start()
+    # Ожидаем их завершения
     for thread in response_threads:
         thread.join()
     print(f"Ответ обработан, это заняло {time() - start_time} сек.")
@@ -72,12 +81,16 @@ def write_to_file_stats(request_results: list, path_file):
     :param request_results: Список для обработки
     :param path_file: Путь к файлу куда складывать результаты
     """
+    # Формируем названия столбцов таблицы
     csv_columns = ("Ник", "Имя", "Страна", "Команда", "Дата рождения", "Призовые за карьеру", "Расса")
+    # Создаем папку если это необходимо
     if not os.path.exists(path_file):
         os.mkdir(path_file)
+    # Записываем данные в файл
     with open(f'{path_file}/stats.csv', 'w', newline='', encoding='utf-8') as stats:
         writer = csv.writer(stats, dialect='excel')
         writer.writerow(csv_columns)
+        # Перебирая элементы в списке и выдёргивая только нужное
         for row in request_results:
             teams = row["current_teams"][0]["team"]["name"] if row["current_teams"] else ''
             result_row = [row["tag"],
@@ -93,25 +106,32 @@ def write_to_file_stats(request_results: list, path_file):
 
 def write_to_file_flags(request_results: list, path_file):
     """
-    Метод получает список элементов, парсит никнейм и регион.
-    Затем формирует линк, скачивает картинку и сохраняет в формате nickname.png
+    Метод получает список элементов, парсит никнейм ,регион и передает в функцию сохранения файла.
     :param request_results: Список элементов
     :param path_file: Папка куда сложить файлики
     :return:
     """
     def save_flag(country_name: str, name: str):
+        """
+        Функция формирует линк, скачивает картинку и сохраняет в формате nickname.png
+        :param country_name: название страны в международном формате
+        :param name: Ник игрока
+        """
         with open(f"{path_file_flag}/{name}.png", "wb") as imgfile:
             flag_file = requests.get(f"{flags_url}{country_name}.png")
             imgfile.write(flag_file.content)
 
     save_threads = []
+    # Создаем папку если это необходимо
     if not os.path.exists(path_file):
         os.mkdir(path_file)
+    # Перебираем элементы и передаем в функцию параметры для скачивания флага
     for row in request_results:
         country = row["country"].lower()
         file_name = row["tag"]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
+    # Ждем завершения всех потоков
     for thread in save_threads:
         thread.join()
     print("Обработка флагов завершена, результат сохранен в каталог " + path_file)
