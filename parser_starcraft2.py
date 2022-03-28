@@ -45,7 +45,6 @@ def results_from_api():
     """
     Модуль отправляет запросы на API, получает ответ и возвращает список элементов
     """
-
     def thread_request(offset):
         params = params_for_api.copy()
         params.update({"offset": offset})
@@ -101,10 +100,9 @@ def write_to_file_flags(request_results: list, path_file):
     :return:
     """
     def save_flag(country_name: str, name: str):
-        imgfile = open(f"{path_file_flag}/{name}.png", "wb")
-        flag_file = requests.get(f"{flags_url}{country_name}.png")
-        imgfile.write(flag_file.content)
-        imgfile.close()
+        with open(f"{path_file_flag}/{name}.png", "wb") as imgfile:
+            flag_file = requests.get(f"{flags_url}{country_name}.png")
+            imgfile.write(flag_file.content)
 
     save_threads = []
     if not os.path.exists(path_file):
