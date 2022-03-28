@@ -21,8 +21,7 @@ APIurl = http://aligulac.com/api/v1/
 import requests
 import json
 import csv
-from time import time
-from threading import Thread, RLock
+from threading import Thread
 
 # параметры API и токен, Путь для файла статистики и флагов
 request_limit = 10
@@ -40,8 +39,6 @@ race_name = {'P': 'Protoss',
              'Z': 'Zerg',
              'R': 'random',
              'S': 'race switcher'}
-
-start_time = time()
 
 def results_from_api():
     def thread_request(offset):
@@ -103,11 +100,7 @@ def write_to_file_flags(request_results: list, file_path):
 
 if __name__ == '__main__':
     print("Привет, я парсер, давай начнем работу.")
-    print(f"Время от начала: {time() - start_time}")
     api_request_results = results_from_api()
-    print(f"Время от начала: {time() - start_time}")
     write_to_file_stats(api_request_results, path_file_stat)
-    print(f"Время от начала: {time() - start_time}")
     write_to_file_flags(api_request_results, path_file_flag)
-    print(f"Время от начала: {time() - start_time}")
     print("Я закончил работу, это окно можно закрыть")
