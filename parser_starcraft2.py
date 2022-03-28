@@ -1,6 +1,6 @@
-'''
+"""
 Задание:
-Написать скрипт, достающий информацию о игроках в Starcraft II.
+Написать скрипт, достающий информацию о игроках в StarСraft II.
 Данные для обработки собирать на сайтах:
 Данные о призовых: http://aligulac.com/
 
@@ -15,56 +15,68 @@
 
 APIkey = AeM6fd9sGXyZBOu8vwkE
 APIurl = http://aligulac.com/api/v1/
-'''
-
+"""
 
 import requests
 import json
 import csv
+import os
 from threading import Thread
+from time import time
 
-# параметры API и токен, Путь для файла статистики и флагов
-request_limit = 10
+request_limit = 50
 data_limit = 500
 params_for_api = {"apikey": "AeM6fd9sGXyZBOu8vwkE",
-              "current_rating__isnull": "false",
-              "order_by": "-current_rating__rating",
-              "limit": (request_limit) }
+                  "current_rating__isnull": "false",
+                  "order_by": "-current_rating__rating",
+                  "limit": request_limit}
 api_url = 'http://aligulac.com/api/v1/player/'
 flags_url = 'http://img.aligulac.com/flags/'
-path_file_stat = 'stats/stats.csv'
-path_file_flag = 'flags/'
+path_file_stat = 'stats'
+path_file_flag = 'flags'
 race_name = {'P': 'Protoss',
              'T': 'Terran',
              'Z': 'Zerg',
              'R': 'random',
              'S': 'race switcher'}
 
+
 def results_from_api():
+    """
+    Модуль отправляет запросы на API, получает ответ и возвращает список элементов
+    """
+
     def thread_request(offset):
         params = params_for_api.copy()
         params.update({"offset": offset})
         request_results = requests.get(api_url, params=params)
         results = json.loads(request_results.text)['objects']
         extract_results.extend(results)
-    # инициируем запрос с заголовком
+
     extract_results = []
     response_threads = []
-    print("Я пошел на ресурс с API запросом, придется подождать")
+    print("Отправили API запрос на сервер, придется подождать ...")
+    start_time = time()
     for limit in range(0, data_limit, request_limit):
         th_req = Thread(target=thread_request, args=(limit,))
         response_threads.append(th_req)
         th_req.start()
     for thread in response_threads:
         thread.join()
-    print("Ответ пришел")
+    print(f"Ответ обработан, это заняло {time() - start_time} сек.")
     return extract_results
 
 
 def write_to_file_stats(request_results: list, path_file):
-    print("Начинаю запись в файл таблички")
+    """
+    Модуль принимает список, парсит из него нужные данные и сохраняет в CSV файл
+    :param request_results: Список для обработки
+    :param path_file: Путь к файлу куда складывать результаты
+    """
     csv_columns = ("Ник", "Имя", "Страна", "Команда", "Дата рождения", "Призовые за карьеру", "Расса")
-    with open(path_file, 'w', newline='', encoding='utf-8') as stats:
+    if not os.path.exists(path_file):
+        os.mkdir(path_file)
+    with open(f'{path_file}/stats.csv', 'w', newline='', encoding='utf-8') as stats:
         writer = csv.writer(stats, dialect='excel')
         writer.writerow(csv_columns)
         for row in request_results:
@@ -77,25 +89,34 @@ def write_to_file_stats(request_results: list, path_file):
                           row["total_earnings"],
                           race_name[row["race"]]]
             writer.writerow(result_row)
-    print("Я закончил запись в файл")
+    print("Обработка результата завершена, результат сохранен в каталог " + path_file)
 
 
-def write_to_file_flags(request_results: list, file_path):
-    def save_flag(country: str, name: str):
-        imgfile = open(f"{path_file_flag}{name}.png", "wb")  # открываем файл для записи, в режиме wb
-        flag_file = requests.get(f"{flags_url}{country}.png")  # делаем запрос
-        imgfile.write(flag_file.content)  # записываем содержимое в файл
+def write_to_file_flags(request_results: list, path_file):
+    """
+    Метод получает список элементов, парсит никнейм и регион.
+    Затем формирует линк, скачивает картинку и сохраняет в формате nickname.png
+    :param request_results: Список элементов
+    :param path_file: Папка куда сложить файлики
+    :return:
+    """
+    def save_flag(country_name: str, name: str):
+        imgfile = open(f"{path_file_flag}/{name}.png", "wb")
+        flag_file = requests.get(f"{flags_url}{country_name}.png")
+        imgfile.write(flag_file.content)
         imgfile.close()
 
-    # Переберем все элементы в результатах, по ключам достанем ник и страну
-    print("Я начинаю запись флагов")
+    save_threads = []
+    if not os.path.exists(path_file):
+        os.mkdir(path_file)
     for row in request_results:
         country = row["country"].lower()
         file_name = row["tag"]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
-    save.join()
-    print("Я закончил запись флагов")
+    for thread in save_threads:
+        thread.join()
+    print("Обработка флагов завершена, результат сохранен в каталог " + path_file)
 
 
 if __name__ == '__main__':
