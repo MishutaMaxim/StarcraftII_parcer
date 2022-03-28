@@ -131,6 +131,7 @@ def write_to_file_flags(request_results: list, path_file):
         file_name = row["tag"]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
+        save_threads.append(save)
     # Ждем завершения всех потоков
     for thread in save_threads:
         thread.join()
