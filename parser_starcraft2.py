@@ -48,7 +48,17 @@ def results_from_api():
         # Делаем сам запрос, результаты добавляем в общий список
         request_results = requests.get(API_URL, params=params)
         results = json.loads(request_results.text)['objects']
-        extract_results.extend(results)
+        for row in results:
+            teams = row["current_teams"][0]["team"]["name"] if row["current_teams"] else ''
+            result_row = [row["current_rating"]["rating"],
+                          row["tag"],
+                          row["name"],
+                          row["country"],
+                          teams,
+                          row["birthday"],
+                          row["total_earnings"],
+                          RACE_NAME[row["race"]]]
+            extract_results.append(result_row)
 
     # Объявляем общий список с результатами и список потоков
     extract_results = []
@@ -63,7 +73,8 @@ def results_from_api():
     # Ожидаем их завершения
     for thread in response_threads:
         thread.join()
-    print(f"\tОтвет обработан, это заняло {time() - start_time} сек.")
+    print(f"Ответ обработан, это заняло {time() - start_time} сек.")
+    extract_results = sorted(extract_results, key=lambda x: x[0], reverse=True)
     return extract_results
 
 
@@ -74,7 +85,7 @@ def write_to_file_stats(request_results: list, path_file) -> None:
     :param path_file: Путь к файлу куда складывать результаты
     """
     # Формируем названия столбцов таблицы
-    csv_columns = ("Ник", "Имя", "Страна", "Команда", "Дата рождения", "Призовые за карьеру", "Расса")
+    csv_columns = ("Рейтинг", "Ник", "Имя", "Страна", "Команда", "Дата рождения", "Призовые за карьеру", "Раса")
     # Создаем папку если это необходимо
     if not os.path.exists(path_file):
         os.mkdir(path_file)
@@ -82,18 +93,8 @@ def write_to_file_stats(request_results: list, path_file) -> None:
     with open(f'{path_file}/stats.csv', 'w', newline='', encoding='utf-8') as stats:
         writer = csv.writer(stats, dialect='excel')
         writer.writerow(csv_columns)
-        # Перебирая элементы в списке и выдёргивая только нужное
-        for row in request_results:
-            teams = row["current_teams"][0]["team"]["name"] if row["current_teams"] else ''
-            result_row = [row["tag"],
-                          row["name"],
-                          row["country"],
-                          teams,
-                          row["birthday"],
-                          row["total_earnings"],
-                          RACE_NAME[row["race"]]]
-            writer.writerow(result_row)
-    print("\tОбработка результата завершена, результат сохранен в каталог " + path_file)
+        writer.writerows(request_results)
+    print("Обработка результата завершена, результат сохранен в каталог " + path_file)
 
 
 def write_to_file_flags(request_results: list, path_file):
@@ -119,8 +120,8 @@ def write_to_file_flags(request_results: list, path_file):
         os.mkdir(path_file)
     # Перебираем элементы и передаем в функцию параметры для скачивания флага
     for row in request_results:
-        country = row["country"].lower()
-        file_name = row["tag"]
+        country = row[3].lower()
+        file_name = row[1]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
         save_threads.append(save)
