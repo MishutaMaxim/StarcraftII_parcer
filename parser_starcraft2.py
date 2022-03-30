@@ -24,17 +24,9 @@ import os
 from threading import Thread
 from time import time
 
-request_limit = 50
-data_limit = 500
-params_for_api = {"apikey": "AeM6fd9sGXyZBOu8vwkE",
-                  "current_rating__isnull": "false",
-                  "order_by": "-current_rating__rating",
-                  "limit": request_limit}
-api_url = 'http://aligulac.com/api/v1/player/'
-flags_url = 'http://img.aligulac.com/flags/'
-path_file_stat = 'stats'
-path_file_flag = 'flags'
-race_name = {'P': 'Protoss',
+from parser_params import *
+
+RACE_NAME = {'P': 'Protoss',
              'T': 'Terran',
              'Z': 'Zerg',
              'R': 'random',
@@ -51,10 +43,10 @@ def results_from_api():
         :param offset: стартовая позиция для выборки
         """
         # формируем параметры для запроса
-        params = params_for_api.copy()
+        params = API_PARAMS.copy()
         params.update({"offset": offset})
         # Делаем сам запрос, результаты добавляем в общий список
-        request_results = requests.get(api_url, params=params)
+        request_results = requests.get(API_URL, params=params)
         results = json.loads(request_results.text)['objects']
         extract_results.extend(results)
 
@@ -64,18 +56,18 @@ def results_from_api():
     print("Отправили API запрос на сервер, придется подождать ...")
     start_time = time()
     # Запускаем потоки
-    for limit in range(0, data_limit, request_limit):
+    for limit in range(0, DATA_LIMIT, REQUEST_LIMIT):
         th_req = Thread(target=api_request, args=(limit,))
         response_threads.append(th_req)
         th_req.start()
     # Ожидаем их завершения
     for thread in response_threads:
         thread.join()
-    print(f"Ответ обработан, это заняло {time() - start_time} сек.")
+    print(f"\tОтвет обработан, это заняло {time() - start_time} сек.")
     return extract_results
 
 
-def write_to_file_stats(request_results: list, path_file):
+def write_to_file_stats(request_results: list, path_file) -> None:
     """
     Модуль принимает список, парсит из него нужные данные и сохраняет в CSV файл
     :param request_results: Список для обработки
@@ -99,9 +91,9 @@ def write_to_file_stats(request_results: list, path_file):
                           teams,
                           row["birthday"],
                           row["total_earnings"],
-                          race_name[row["race"]]]
+                          RACE_NAME[row["race"]]]
             writer.writerow(result_row)
-    print("Обработка результата завершена, результат сохранен в каталог " + path_file)
+    print("\tОбработка результата завершена, результат сохранен в каталог " + path_file)
 
 
 def write_to_file_flags(request_results: list, path_file):
@@ -117,8 +109,8 @@ def write_to_file_flags(request_results: list, path_file):
         :param country_name: название страны в международном формате
         :param name: Ник игрока
         """
-        with open(f"{path_file_flag}/{name}.png", "wb") as imgfile:
-            flag_file = requests.get(f"{flags_url}{country_name}.png")
+        with open(f"{FLAGS_DIR_NAME}/{name}.png", "wb") as imgfile:
+            flag_file = requests.get(f"{FLAGS_URL}{country_name}.png")
             imgfile.write(flag_file.content)
 
     save_threads = []
@@ -135,12 +127,12 @@ def write_to_file_flags(request_results: list, path_file):
     # Ждем завершения всех потоков
     for thread in save_threads:
         thread.join()
-    print("Обработка флагов завершена, результат сохранен в каталог " + path_file)
+    print("\tОбработка флагов завершена, результат сохранен в каталог " + path_file)
 
 
 if __name__ == '__main__':
     print("Привет, я парсер, давай начнем работу.")
     api_request_results = results_from_api()
-    write_to_file_stats(api_request_results, path_file_stat)
-    write_to_file_flags(api_request_results, path_file_flag)
+    write_to_file_stats(api_request_results, STAT_DIR_NAME)
+    write_to_file_flags(api_request_results, FLAGS_DIR_NAME)
     print("Я закончил работу, это окно можно закрыть")
