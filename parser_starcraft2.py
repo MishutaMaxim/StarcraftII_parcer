@@ -60,7 +60,7 @@ def results_from_api():
     for thread in response_threads:
         thread.join()
     print(f"Ответ обработан, это заняло {time() - start_time} сек.")
-    extract_results.sort(key=lambda x: x[0], reverse=True)
+    # extract_results.sort(key=lambda x: x[], reverse=True)
     return extract_results
 
 
@@ -76,20 +76,26 @@ def api_request(offset, result_list):
     # Делаем сам запрос, результаты добавляем в общий список
     request_results = requests.get(API_URL, params=params)
     results = json.loads(request_results.text)['objects']
-    for row in results:
-        teams = row["current_teams"][0]["team"]["name"] if row["current_teams"] else ''
-        result_row = [row["current_rating"]["rating"],
-                      row["tag"],
-                      row["name"],
-                      row["country"],
-                      teams,
-                      row["birthday"],
-                      row["total_earnings"],
-                      RACE_NAME[row["race"]]]
-        result_list.append(result_row)
+    result_list.extend(results)
 
 
-def write_to_file_stats(request_results: list, path_file) -> None:
+def results_parser(result_list: list) -> list:
+    parsed_list = []
+    for row in result_list:
+        team = row["current_teams"][0]["team"]["name"] if row["current_teams"] else ''
+        result_row = {"Рейтинг": row["current_rating"]["rating"],
+                      "Ник": row["tag"],
+                      "Имя": row["name"],
+                      "Страна": row["country"],
+                      "Команда": team,
+                      "Дата рождения": row["birthday"],
+                      "Призовые за карьеру": row["total_earnings"],
+                      "Раса": RACE_NAME[row["race"]]}
+        parsed_list.append(result_row)
+    return parsed_list
+
+
+def save_stats_file(request_results: list, path_file) -> None:
     """
     Модуль принимает список, парсит из него нужные данные и сохраняет в CSV файл
     :param request_results: Список для обработки
@@ -101,10 +107,12 @@ def write_to_file_stats(request_results: list, path_file) -> None:
     if not os.path.exists(path_file):
         os.mkdir(path_file)
     # Записываем данные в файл
+
     with open(f'{path_file}/stats.csv', 'w', newline='', encoding='utf-8') as stats:
-        writer = csv.writer(stats, dialect='excel')
-        writer.writerow(csv_columns)
-        writer.writerows(request_results)
+        writer = csv.DictWriter(stats, fieldnames=request_results, dialect='excel')
+        writer.writeheader(request_results[0])
+        for row in request_results:
+            writer.writerow(row)
     print("\tОбработка результата завершена, результат сохранен в каталог " + path_file)
 
 
@@ -132,8 +140,8 @@ def write_to_file_flags(request_results: list, path_file):
         os.mkdir(path_file)
     # Перебираем элементы и передаем в функцию параметры для скачивания флага
     for row in request_results:
-        country = row[3].lower()
-        file_name = row[1]
+        country = row["Страна"].lower()
+        file_name = row["Ник"]
         save = Thread(target=save_flag, args=(country, file_name,))
         save.start()
         save_threads.append(save)
@@ -146,6 +154,7 @@ def write_to_file_flags(request_results: list, path_file):
 if __name__ == '__main__':
     print("Привет, я парсер, давай начнем работу.")
     api_request_results = results_from_api()
-    write_to_file_stats(api_request_results, STAT_DIR_NAME)
-    write_to_file_flags(api_request_results, FLAGS_DIR_NAME)
+    finaly_list = results_parser(api_request_results)
+    save_stats_file(finaly_list, STAT_DIR_NAME)
+    write_to_file_flags(finaly_list, FLAGS_DIR_NAME)
     print("Я закончил работу, это окно можно закрыть")
