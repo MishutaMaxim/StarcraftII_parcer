@@ -110,7 +110,7 @@ def save_stats_file(request_results: list, path_file) -> None:
 
     with open(f'{path_file}/stats.csv', 'w', newline='', encoding='utf-8') as stats:
         writer = csv.DictWriter(stats, fieldnames=request_results, dialect='excel')
-        writer.writeheader(request_results[0])
+        writer.writeheader(request_results)
         for row in request_results:
             writer.writerow(row)
     print("\tОбработка результата завершена, результат сохранен в каталог " + path_file)
