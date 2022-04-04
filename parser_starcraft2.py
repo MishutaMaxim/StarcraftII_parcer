@@ -74,7 +74,7 @@ def get_data_from_api(api_url: str, api_params: dict, data_limit: int, request_l
             thread.join()
         print("... Ответ обработан")
         return api_results
-    except() as error:
+    except Exception as error:
         print(f"Ошибка во время запроса: {error}")
 
 
@@ -133,7 +133,7 @@ def results_parser(unparsed_list: list, races: dict) -> list:
             parsed_list.append(result_row)
         parsed_list.sort(key=lambda x: x["Рейтинг"], reverse=True)
         return parsed_list
-    except() as error:
+    except Exception as error:
         print(f"Ошибка при обработке результатов: {error}")
 
 
@@ -163,7 +163,7 @@ def save_stats_file(request_results: list, path_file: str) -> None:
             writer.writeheader()
             writer.writerows(request_results)
         print("... Обработка завершена, результат сохранен в каталог " + path_file)
-    except() as error:
+    except Exception as error:
         print(f"Произошла ошибка при сохранении файла статистики: {error}")
 
 
@@ -202,7 +202,7 @@ def write_flags_files(request_results: list, path_file: str) -> None:
         for thread in save_threads:
             thread.join()
         print("... Обработка флагов завершена, результат сохранен в каталог " + path_file)
-    except() as error:
+    except Exception as error:
         print(f"Произошла ошибка при сохранении флагов: {error}")
 
 
