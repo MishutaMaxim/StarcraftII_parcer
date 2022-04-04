@@ -30,8 +30,7 @@ API_URL = 'http://aligulac.com/api/v1/player/'  # Адрес для запрос
 API_KEY = "AeM6fd9sGXyZBOu8vwkE"  # Ключ для api
 API_PARAMS = {"apikey": API_KEY,  # Параметры для запроса
               "current_rating__isnull": "false",
-              "order_by": "-current_rating__rating",
-              "limit": REQUEST_LIMIT}
+              "order_by": "-current_rating__rating"}
 FLAGS_URL = 'http://img.aligulac.com/flags/'  # Адрес для флагов
 STAT_DIR_NAME = 'stats'  # Папка для таблицы
 FLAGS_DIR_NAME = 'flags'  # Папка для флагов
@@ -66,8 +65,8 @@ def get_data_from_api(api_url: str, api_params: dict, data_limit: int, request_l
         api_results = []
         # Запускаем потоки
         response_threads = []
-        for limit in range(0, data_limit, request_limit):
-            th_req = Thread(target=api_request, args=(api_url, api_params, limit, api_results))
+        for offset in range(0, data_limit, request_limit):
+            th_req = Thread(target=api_request, args=(api_url, api_params, offset, request_limit, api_results))
             response_threads.append(th_req)
             th_req.start()
         # Ожидаем их завершения
@@ -79,9 +78,10 @@ def get_data_from_api(api_url: str, api_params: dict, data_limit: int, request_l
         print(f"Ошибка во время запроса: {error}")
 
 
-def api_request(api_url: str, api_params: dict, offset: int, result_list: list) -> None:
+def api_request(api_url: str, api_params: dict, offset: int, request_limit: int, result_list: list) -> None:
     """
     Функция получает список выполняет запрос к api, выбирает полученные элементы и добавляет их в список
+    :param request_limit: количество элементов в ответе от сервера
     :param api_params: параметры запроса
     :param api_url: урл запроса
     :param result_list: передаем лист куда складывать результаты
@@ -89,7 +89,7 @@ def api_request(api_url: str, api_params: dict, offset: int, result_list: list) 
     """
     # формируем параметры для запроса
     params = api_params.copy()
-    params.update({"offset": offset})
+    params.update({"offset": offset, "limit": request_limit})
     # Делаем сам запрос, результаты добавляем в общий список
     request_results = requests.get(api_url, params=params)
     results = json.loads(request_results.text)['objects']
