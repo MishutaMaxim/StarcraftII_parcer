@@ -16,6 +16,7 @@
 APIkey = AeM6fd9sGXyZBOu8vwkE
 APIurl = http://aligulac.com/api/v1/
 """
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import json
@@ -78,7 +79,7 @@ def get_data_from_api(api_url: str, api_params: dict, data_limit: int, request_l
         print(f"Ошибка во время запроса: {error}")
 
 
-def api_request(api_url: str, api_params: dict, offset: int, request_limit: int, result_list: list) -> None:
+def api_request(api_url: str, api_params: dict, offset: int, request_limit: int, result_list: list):
     """
     Функция получает список выполняет запрос к api, выбирает полученные элементы и добавляет их в список
     :param request_limit: количество элементов в ответе от сервера
@@ -147,7 +148,7 @@ def make_dir(dir_name: str) -> None:
 
 
 @benchmark
-def save_stats_file(request_results: list, path_file: str) -> None:
+def save_stats_file(request_results: list, path_file: str):
     """
     Модуль принимает список и сохраняет в CSV таблицу
     :param request_results: Список для обработки
@@ -179,7 +180,7 @@ def save_flag(country_name: str, name: str) -> None:
 
 
 @benchmark
-def write_flags_files(request_results: list, path_file: str) -> None:
+def write_flags_files(request_results: list, path_file: str):
     """
     Метод получает список элементов, парсит никнейм, регион и передает в функцию сохранения файла.
     :param request_results: Список элементов
